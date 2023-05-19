@@ -19,7 +19,7 @@ audio_path = path_3
 
 
 OUTPUT_PATH = Path(__file__).parent
-ASSETS_PATH = OUTPUT_PATH / Path("./Data")
+ASSETS_PATH = OUTPUT_PATH / Path(path_2+"/assets")
 
 
 def relative_to_assets(path: str) -> Path:
@@ -200,7 +200,7 @@ def about():
     about = Toplevel()
     about.geometry("438x276")
     about.title('About')
-    about.iconbitmap(r'Data/music.ico')
+    about.iconbitmap(r'assets/music.ico')
     about.configure(bg = "#FFFFFF")
     canvas = Canvas(
         about,
@@ -296,7 +296,7 @@ def about():
 def settings():
     setting = Toplevel()
     setting.title('Coming Soon....')
-    setting.iconbitmap(r'Data/music.ico')
+    setting.iconbitmap(r'assets/music.ico')
     setting.configure(bg = "#FFFFFF")
     button_image_4 = PhotoImage(
         file=relative_to_assets("hehe.png"))
@@ -317,7 +317,7 @@ def settings():
 
 window = Tk()
 window.title('Taby - Music Player')
-window.iconbitmap('Data/music.ico')
+window.iconbitmap('assets/music.ico')
 window.geometry("801x439")
 window.configure(bg = "#FFFFFF")
 
