@@ -10,8 +10,16 @@ import audiofile
 from mutagen.mp3 import MP3
 import webbrowser
 
+
+#music file finder
+path_1 = os.getcwd()
+path_2 = str(path_1).replace("\\",'/')
+path_3 = path_2+'/music/'
+audio_path = path_3
+
+
 OUTPUT_PATH = Path(__file__).parent
-ASSETS_PATH = OUTPUT_PATH / Path("Data")
+ASSETS_PATH = OUTPUT_PATH / Path("./Data")
 
 
 def relative_to_assets(path: str) -> Path:
@@ -20,11 +28,7 @@ def relative_to_assets(path: str) -> Path:
 
 sessions = pycaw.AudioUtilities.GetAllSessions()
 
-#music file finder
-path_1 = os.getcwd()
-path_2 = str(path_1).replace("\\",'/')
-path_3 = path_2+'/music/'
-audio_path = path_3
+
 
 mixer.init()
 #functions as it needs to be defined
@@ -88,7 +92,7 @@ def play_music():
         main_slider.set(float(0.01))
         paused = False
         mixer.music.play()
-        window.after(music_slider)
+        window.after(5,music_slider)
 
     
 
