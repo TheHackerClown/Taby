@@ -1,6 +1,4 @@
 pycaw
-pillow
 customtkinter
-audiofile
-mutagen
 pygame
+tkvideoplayer
