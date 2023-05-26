@@ -1,108 +1,55 @@
 from pathlib import Path
-from tkinter import Tk, Canvas, Button, PhotoImage,Listbox, END,ttk,HORIZONTAL,IntVar,Toplevel,messagebox
+from tkinter import Tk, Canvas, Button, PhotoImage,Listbox, END,HORIZONTAL,Toplevel,messagebox
 from tkinter.filedialog import askdirectory
-import os
-os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
+from tkinter.ttk import Style,Scale
+from os import remove,getcwd,listdir
 from pygame import mixer
-import pycaw.pycaw as pycaw
-import customtkinter
-import audiofile
-from mutagen.mp3 import MP3
+from pycaw.pycaw import AudioUtilities
+from customtkinter import CTkProgressBar,CTkScrollbar
 import webbrowser
 
-
 #music file finder
-path_1 = os.getcwd()
+path_1 = getcwd()
 path_2 = str(path_1).replace("\\",'/')
-path_3 = path_2+'/music/'
-audio_path = path_3
+path_3 = "/".join([path_2, "music/"])
 
 
 OUTPUT_PATH = Path(__file__).parent
-ASSETS_PATH = OUTPUT_PATH / Path("./Data")
+ASSETS_PATH = OUTPUT_PATH / Path('assets/')#"/".join([path_2, "assets"]))
 
 
 def relative_to_assets(path: str) -> Path:
     return ASSETS_PATH / Path(path)
 
-
-sessions = pycaw.AudioUtilities.GetAllSessions()
-
-
-
 mixer.init()
 #functions as it needs to be defined
-def name_ext(name):
-    ext = (".mp3", ".wav")
-    for i in ext:
-        if i in name:
-            b = name.replace(i,'')
-        else:
-            pass
-    return b
 
-playing_song=0
-music_len = 1
-directory = ''
-
-
-
-
-def len_music(path):
-    if '.wav' in path:
-        music_len = round(audiofile.duration(path))
-        return music_len
-    elif '.mp3' in path:
-        audio = MP3(path)
-        audio_info = audio.info    
-        length = int(audio_info.length)
-        return length
+playing_song,directory,paused,audio_files,sessions=0,'',False,[],AudioUtilities.GetAllSessions()
 
 def play_music():
-    global music_len
-    global name
     global paused
     global playing_song
-    global selected_item
-    global audio_path
     if playing_song ==0:
         index = song_list.curselection()
         if index:
             selected_item = song_list.get(index)
-            name = (name_ext(selected_item))
-            canvas.itemconfigure(Song_name,text=name)
-        mixer.music.load(audio_path+str(selected_item))
-        music_len = len_music(audio_path+str(selected_item))
+            canvas.itemconfigure(Song_name,text=(selected_item))
+        mixer.music.load("/".join([path_3, str(selected_item)]))
         playing_song+=1
-        main_slider.configure(from_=0,to=music_len)
-        main_slider.set(float(0.01))
         mixer.music.play()
-        music_slider()
+        main_slider.start()
     elif playing_song !=0:
         paused=True
+        mixer.music.unload()
         index = song_list.curselection()
         if index:
             selected_item = song_list.get(index)
-            name = (name_ext(selected_item))
-            canvas.itemconfigure(Song_name,text=name)
+            canvas.itemconfigure(Song_name,text=(selected_item))
         mixer.music.unload()
-        mixer.music.load(audio_path+str(selected_item))
-        music_len = len_music(audio_path+str(selected_item))
-        main_slider.configure(to=music_len)
-        main_slider.set(float(0.01))
+        mixer.music.load("/".join([path_3, str(selected_item)]))
         paused = False
         mixer.music.play()
-        window.after(5,music_slider)
-
-    
-
-def music_slider():
-    a_num = main_slider.get()
-    if a_num >= music_len or (a_num)==0:
-        stop_music()
-    elif paused == False and a_num >0 :
-        main_slider.set(round(a_num)+(1))
-        window.after(1001,music_slider)
+        main_slider.start()
         
 def next():
     global paused
@@ -112,17 +59,12 @@ def next():
     if cur_sel and int(cur_sel[-1]) == last_item_index:
         song_list.selection_clear(0, END)
         song_list.selection_set(0)
-        main_slider.set(0)
-        paused = False
         play_music()
-        music_slider()
     else:
         song_list.selection_clear(0, END)
         song_list.selection_set(int(cur_sel[-1])+1)
-        main_slider.set(0)
-        paused = False
         play_music()
-        music_slider()
+
 
 def prev():
     global paused
@@ -132,64 +74,44 @@ def prev():
     if cur_sel and int(cur_sel[-1]) == 0:
         song_list.selection_clear(0, END)
         song_list.selection_set(last_item_index)
-        main_slider.set(0)
-        paused = True
         play_music()
-        music_slider()
     else:
         song_list.selection_clear(0, END)
         song_list.selection_set(int(cur_sel[-1])-1)
-        main_slider.set(0)
         play_music()
-        paused = True
-        music_slider()
 
-global paused
-paused = False
+
 def pause_music():
     global paused
     if paused == False:
         mixer.music.pause()
+        main_slider.stop()
         paused = True
-        window.after_idle(music_slider)
     
     elif paused:
         mixer.music.unpause()
+        main_slider.start()
         paused = False
-        window.after_idle(music_slider)
 
 
-def stop_music():
-    global paused
-    mixer.music.stop()
-    mixer.music.unload()
-    paused = True
-    main_slider.set(0)
-    window.after_idle(music_slider)
-
-global audio_files
-audio_files = []
 
 def del_music():
-    global audio_path
     index = song_list.curselection()
     if index:
         music_name = song_list.get(index)
         idx = song_list.get(0, END).index(music_name)
         song_list.delete(idx)
-        os.remove(audio_path+str(music_name))
+        remove("".join([path_3, str(music_name)]))
 
 def find_audio():
-    global audio_path
     global audio_files
-    global song_list
     global path_3
-    all_path = askdirectory(title='Select Music Folder',initialdir=audio_path)
+    all_path = askdirectory(title='Select Music Folder',initialdir=path_3)
     audio_path = all_path if all_path else path_3
     audio_extensions = (".mp3", ".wav")
     audio_files.clear()
     song_list.delete(0,END)
-    for file in os.listdir(audio_path):
+    for file in listdir(audio_path):
         if file.endswith(audio_extensions):
             audio_files.append((file))
     
@@ -200,7 +122,7 @@ def about():
     about = Toplevel()
     about.geometry("438x276")
     about.title('About')
-    about.iconbitmap(r'Data/music.ico')
+    about.iconbitmap(relative_to_assets('music.ico'))
     about.configure(bg = "#FFFFFF")
     canvas = Canvas(
         about,
@@ -296,7 +218,7 @@ def about():
 def settings():
     setting = Toplevel()
     setting.title('Coming Soon....')
-    setting.iconbitmap(r'Data/music.ico')
+    setting.iconbitmap(relative_to_assets('music.ico'))
     setting.configure(bg = "#FFFFFF")
     button_image_4 = PhotoImage(
         file=relative_to_assets("hehe.png"))
@@ -317,13 +239,9 @@ def settings():
 
 window = Tk()
 window.title('Taby - Music Player')
-window.iconbitmap('Data/music.ico')
+window.iconbitmap(relative_to_assets('music.ico'))
 window.geometry("801x439")
 window.configure(bg = "#FFFFFF")
-
-name = ''
-main_len = IntVar()
-fps = 40
 
 canvas = Canvas(
      window,
@@ -463,39 +381,35 @@ song_list = Listbox(
     bg='#353737',
     relief='flat')
 audio_extensions = (".mp3", ".wav")
-for file in os.listdir(audio_path):
+for file in listdir(path_3):
     if file.endswith(audio_extensions):
         audio_files.append((file))
 song_list.delete(0,END)
 for i in audio_files:
         song_list.insert(END,i)
 song_list.place(x=301,y=180)
-scroll = customtkinter.CTkScrollbar(window,height=242,bg_color='#353737',button_color='#ff4141',command=song_list.yview)
+scroll = CTkScrollbar(window,height=242,bg_color='#353737',button_color='#ff4141',command=song_list.yview)
 song_list.config(yscrollcommand=scroll.set)
 scroll.place(x=762,y=181)
 
 '''Volume Slider [Condition-Working]'''
-global current_volume
 current_volume=0
 for session in sessions:
     volume = session.SimpleAudioVolume
     if session.Process and session.Process.name() == "explorer.exe":
         current_volume = volume.GetMasterVolume()
         break
-style = ttk.Style()
+style = Style()
 def set_volume(value):
     mixer.music.set_volume(float(value))
 style.configure("Horizontal.TScale", background="#353737", fg='#ff4141',troughcolor="#ff4141", sliderlength=20)
-volume_slider = ttk.Scale(window, from_=0, to=1, orient=HORIZONTAL,command=set_volume ,length=120)
+volume_slider = Scale(window, from_=0, to=1, orient=HORIZONTAL,command=set_volume ,length=120)
 volume_slider.place(x=666,y=80)
 
 '''MAIN MUSIC SLIDER [CONDITION-Working]'''
-def set_music(value):
-    mixer.music.set_pos((float(value)))
-    if value == 1:
-        stop_music()
-main_slider = customtkinter.CTkSlider(window,width=470,button_hover_color='#ff4141',variable=main_len,bg_color='#353737',button_color='#000000',orientation='horizontal',command=set_music)
+main_slider = CTkProgressBar(window,width=470,orientation='horizontal',bg_color='#353737',progress_color='#ff4141',mode='indeterminate')
 main_slider.place(x=310,y=50)
+main_slider.set(0)
 
 '''Play Button [Condition-Working]'''
 button_image_7 = PhotoImage(
@@ -554,6 +468,6 @@ window.bind('<Right>',lambda event:next())
 
 
 '''Song Name Label [Condition-Working]'''
-Song_name=canvas.create_text(320,28,text=name,font=('Times New Roman',16,'bold'),fill='#ff4141',tags=("marquee",),anchor='w')
+Song_name=canvas.create_text(320,28,font=('Times New Roman',16,'bold'),fill='#ff4141',tags=("marquee",),anchor='w')
 window.resizable(False, False)
 window.mainloop()
