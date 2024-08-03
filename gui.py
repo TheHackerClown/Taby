@@ -112,6 +112,7 @@ def play(obj):
                 mixer.music.play()
                 user_input= False
                 main_scale.set(0)
+                canvas.itemconfigure(song_lenth_canvas, text="00:00/00:00")
                 user_input=True
                 main_scale.after(100,increment_value(main_scale))
 
