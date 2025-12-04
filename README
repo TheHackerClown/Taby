@@ -1,8 +1,8 @@
 ---- Taby ----
-This program is a simple music player made using python [yes, the performance maybe poor during the startup].
-It has functionality of music timer, play, pause, change music, open a directory of music, and deleting a music file.
+A Music Player for my Linux distro,
 
-This Project is Currently in early access, so you may get to experience many bugs and issues.
-You can address the issues in issue tab, else the update will fix it.
+Still in development, and somewhat unoptimized,
 
-"An Idiot Admires Complexity but I admire slowness of python.."
+But Its Working, with required features.
+
+~Haiku by TheHackerClown

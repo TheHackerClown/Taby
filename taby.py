@@ -7,7 +7,7 @@ from pygame import mixer
 from mutagen.mp3 import MP3
 import time
 OUTPUT_PATH = Path(__file__).parent
-ASSETS_PATH = OUTPUT_PATH / 'assets/frame0'
+ASSETS_PATH = OUTPUT_PATH / 'assets'
 mixer.init()
 
 def getfile(path: str) -> Path:

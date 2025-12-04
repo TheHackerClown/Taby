@@ -1,2 +1,8 @@
 .venv/
 venv/
+taby.dist
+taby.onefile-build
+taby.build
+taby.bin
+AppDir/usr/bin/Taby
+Taby-x86_64.AppImage

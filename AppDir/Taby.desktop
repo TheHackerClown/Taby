@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Taby
+Comment=A Simple Music Player for Offline Music Library
+Exec=Taby
+Terminal=false
+Icon=Taby
+Categories=AudioVideo;Player;Music;
+StartupNotify=true
