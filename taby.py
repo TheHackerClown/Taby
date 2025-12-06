@@ -10,364 +10,338 @@ OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / 'assets'
 mixer.init()
 
-def getfile(path: str) -> Path:
-        return ASSETS_PATH / Path(path)
 
-master = Tk()
+class Taby(Tk):
+        def __init__(self, *args, **kwargs):
+                super().__init__()
+                self.wm_title("Taby - Music Player")
+                self.geometry('600x300')
+                self.configure(bg="#FFFFFF")
+                self.icon = PhotoImage(file=self.getfile(path='music.png'))
+                self.iconphoto(True, self.icon)
+                self.interval_function = False
+                self.settings = {'RATE':0}
+                self.pause = True
+                self.user_input = True
+                self.resizable(False,False)
+                self.canvas = Canvas(
+                        self,
+                        bg = "#FFFFFF",
+                        height = 300,
+                        width = 600,
+                        bd = 0,
+                        highlightthickness = 0,
+                        relief = "ridge"
+                        )
+                self.canvas.place(x = 0, y = 0) 
 
-icon = PhotoImage(file=getfile(path='music.png'))
-master.iconphoto(True, icon)
-master.title('Taby - Music Player')
-master.geometry('600x300')
-master.configure(bg='#FFFFFF')
+                self.draw_elements()
 
-interval_function = False
-settings,pause,user_input = {'RATE':0},True,True
+        def getfile(self, path:str)->Path:
+               return ASSETS_PATH / Path(path)
 
-#Functions
-def get_mp3_duration(file_path):
-    audio = MP3(file_path)
-    duration_in_seconds = audio.info.length
-    return duration_in_seconds
+        #Functions
+        def get_mp3_duration(self,file_path):
+                audio = MP3(file_path)
+                duration_in_seconds = audio.info.length
+                return duration_in_seconds
+
+        #VOLUME INCREASE OR DECREASE
+        def vol_slider_change(self,value):
+                volume = float(value) / 100
+                mixer.music.set_volume(volume)
 
 
-#VOLUME INCREASE OR DECREASE {PERFECTLY WORKING DONT TOUCH}
-def vol_slider_change(value):
-        volume = float(value) / 100
-        mixer.music.set_volume(volume)
+        def increase(self,value):
+                if self.user_input and mixer.music.get_busy():
+                        mixer.music.set_pos(float(value))
+                        self.canvas.itemconfigure(self.song_lenth_canvas, text=f"{self.return_time(value)}/{self.return_time(self.main_scale['to'])}")
+                else:
+                        self.canvas.itemconfigure(self.song_lenth_canvas, text=f"{self.return_time(value)}/{self.return_time(self.main_scale['to'])}")
 
-def increase(value):
-        global user_input
-        if user_input and mixer.music.get_busy():
-                mixer.music.set_pos(float(value))
-                canvas.itemconfigure(song_lenth_canvas, text=f"{return_time(value)}/{return_time(main_scale['to'])}")
-        else:
-                canvas.itemconfigure(song_lenth_canvas, text=f"{return_time(value)}/{return_time(main_scale['to'])}")
-
-#DELETE SONG {PERFECTLY WORKING DONT TOUCH}
-def delete_song(obj):
-        selected_index = obj.curselection()[0]
-        song = obj.get(selected_index) +'.mp3'
-        obj.delete(selected_index)
-        path = settings["DIR"] / song
-        os.remove(path)
-        
-#ADDING SONGS FROM A DIRECTORY {PERFECTLY WORKING DONT TOUCH}
-def add_song(obj):
-        global settings
-        directory = filedialog.askdirectory()
-        if directory:
-                settings["DIR"] = directory
-                obj.delete(0,END)
-                mp3_files = [file for file in os.listdir(directory) if file.endswith(".mp3")]
-                for mp3_file in enumerate(mp3_files):
-                        obj.insert(mp3_file[0], mp3_file[1][:-4])
-
-def reset_player():
-       global pause
-       global user_input
-       pause=True
-       user_input = False
-       main_scale.set(0)
-       user_input = True
-       main_scale['to'] = 100
-       mixer.music.unload()
-       canvas.itemconfigure(song_lenth_canvas, text="00:00/00:00")
-       canvas.itemconfigure(song_name_canvas,text='Select A Song')
-       song_list.selection_clear(0, END)
-
-def return_time(value):
-       value = int(round(float(value)))
-       if value >= 60 and value//60 <10 and value%60>9:
-              return f'0{value//60}:{value%60}'
-       elif value == 0:
-              return f"00:00"
-       elif value < 60 and value >9:
-              return f"00:{value}"
-       elif value <=9 and value >0:
-              return f"00:0{value}"
-       elif value > 60 and value//60 >=10 and value%60>9:
-              return f'{value//60}:{value%60}'
-       elif value > 60 and value//60 >=10 and value%60<=9:
-              return f'{value//60}:0{value%60}'
-       elif value >= 60 and value//60 <10 and value%60<=9:
-              return f"0{value//60}:0{value%60}"
-       
-
-def play(obj):
-        global pause
-        global interval_function
-        global user_input
-        index = obj.curselection()
-        if index and settings['DIR']:
-                if interval_function:
-                       main_scale.after_cancel(interval_function)
-                global pause
-                pause = False
-                song_name = obj.get(obj.curselection())
-                song_path = settings['DIR'] +'/'+ song_name + '.mp3'
-                canvas.itemconfigure(song_name_canvas,text=song_name)
-                mixer.music.load(str(song_path))
-                main_scale['to'] = round(get_mp3_duration(song_path))
-                mixer.music.play()
-                user_input= False
-                main_scale.set(0)
-                canvas.itemconfigure(song_lenth_canvas, text="00:00/00:00")
-                user_input=True
-                main_scale.after(100,increment_value(main_scale))
-
-def next(obj):
-        global pause
-        global interval_function
-        pause = False
-        index = obj.curselection()[0]
-        main_scale.after_cancel(interval_function)
-        if index and index != obj.size()-1:
-              obj.selection_clear(0,END)
-              obj.selection_set(index+1)
-              play(obj)
-        elif index:
-                obj.selection_clear(0,END)
-                obj.selection_set(0)
-                play(obj)
-
-def prev(obj):
-        global pause
-        pause = False
-        index = obj.curselection()[0]
-        main_scale.after_cancel(interval_function)
-        if index and index != 0:
-              obj.selection_clear(0,END)
-              obj.selection_set(index-1)
-              play(obj)
-        elif index:
-                obj.selection_clear(0,END)
-                obj.selection_set(obj.size() - 1)
-                play(obj)
+        #DELETE SONG
+        def delete_song(self,obj):
+                selected_index = obj.curselection()[0]
+                song = obj.get(selected_index) +'.mp3'
+                obj.delete(selected_index)
+                path = self.settings["DIR"] / song
+                os.remove(path)
                 
+        #ADDING SONGS FROM A DIRECTORY
+        def add_song(self,obj):
+                directory = filedialog.askdirectory()
+                if directory:
+                        self.settings["DIR"] = directory
+                        obj.delete(0,END)
+                        mp3_files = [file for file in os.listdir(directory) if file.endswith(".mp3")]
+                        for mp3_file in enumerate(mp3_files):
+                                obj.insert(mp3_file[0], mp3_file[1][:-4])
 
-def increment_value(scale, interval=1000, increment_amount=1):
-    global user_input,interval_function
-    current_value = scale.get()
-    new_value = current_value + increment_amount
-    if new_value < scale['to'] and not pause:
-        user_input = False
-        scale.set(new_value)
-        user_input = True
-        interval_function = scale.after(interval, lambda: increment_value(scale, interval, increment_amount))
-    elif new_value == scale['to']:
-           user_input = False
-           scale.set(scale['to'])
-           user_input = True
-           time.sleep(1.0)
-    elif new_value > scale['to']:
-           reset_player()
-    else:    
-           pass
+        def reset_player(self):
+                self.pause=True
+                self.user_input = False
+                self.main_scale.set(0)
+                self.user_input = True
+                self.main_scale['to'] = 100
+                mixer.music.unload()
+                self.canvas.itemconfigure(self.song_lenth_canvas, text="00:00/00:00")
+                self.canvas.itemconfigure(self.song_name_canvas,text='Select A Song')
+                self.song_list.selection_clear(0, END)
 
+        def return_time(self,value):
+                value = int(round(float(value)))
+                return f"{str(value//60).zfill(2)}:{str(value%60).zfill(2)}"
+        
+        def play(self,obj):
+                index = obj.curselection()
+                if index and self.settings['DIR']:
+                        if self.interval_function:
+                                self.main_scale.after_cancel(self.interval_function) 
+                        self.pause = False
+                        song_name = obj.get(obj.curselection())
+                        song_path = self.settings['DIR'] +'/'+ song_name + '.mp3'
+                        self.canvas.itemconfigure(self.song_name_canvas,text=song_name)
+                        mixer.music.load(str(song_path))
+                        self.main_scale['to'] = round(self.get_mp3_duration(song_path))
+                        mixer.music.play()
+                        self.user_input= False
+                        self.main_scale.set(0)
+                        self.canvas.itemconfigure(self.song_lenth_canvas, text="00:00/00:00")
+                        self.user_input=True
+                        self.main_scale.after(100,self.increment_value(self.main_scale))
 
-def play_or_pause():
-        global pause
-        global interval_function
-        if pause:
-                pause=False
-                mixer.music.unpause()
-                main_scale.after(100,increment_value(main_scale))
-        else:
-                pause = True
-                mixer.music.pause()
+        def next(self,obj):
+                self.pause = False
+                index = obj.curselection()[0]
+                self.main_scale.after_cancel(self.interval_function)
+                obj.selection_clear(0,END)
+                obj.selection_set( index+1 if index and index != obj.size()-1 else 0 )
+                self.play(obj)
 
-canvas = Canvas(
-            master,
-            bg = "#FFFFFF",
-            height = 300,
-            width = 600,
-            bd = 0,
-            highlightthickness = 0,
-            relief = "ridge"
-        )
-canvas.place(x = 0, y = 0) 
-bg_file = PhotoImage(
-file=getfile(path="bg.png"))
-background_image = canvas.create_image(
-            300.0,
-            150.0,
-            image=bg_file
-        )
+        def prev(self,obj):
+                self.pause = False
+                index = obj.curselection()[0]
+                self.main_scale.after_cancel(self.interval_function)
+                obj.selection_clear(0,END)
+                obj.selection_set(index-1 if index and index != 0 else obj.size() - 1)
+                self.play(obj)
 
-prev_image = PhotoImage(
-            file=getfile(path="prev.png"))
-previous = Button(
-            image=prev_image,
-            borderwidth=0,
-            highlightthickness=0,
-            command=lambda: prev(song_list),
-            relief="flat"
-        )
-previous.place(
-            x=316.0,
-            y=72.0,
-            width=30.000000000000004,
-            height=30.0
-        )
-
-next_image = PhotoImage(
-            file=getfile(path="next.png"))
-next_btn = Button(
-            image=next_image,
-            borderwidth=0,
-            highlightthickness=0,
-            command=lambda: next(song_list),
-            relief="flat"
-        )
-next_btn.place(
-            x=422.0,
-            y=72.0,
-            width=30.0,
-            height=30.0
-        )
-
-play_pause_image = PhotoImage(
-            file=getfile(path="play_pause.png"))
-play_pause = Button(
-            image=play_pause_image,
-            borderwidth=0,
-            highlightthickness=0,
-            command=lambda: play_or_pause(),
-            relief="flat"
-        )
-play_pause.place(
-            x=364.0,
-            y=72.0,
-            width=40.0,
-            height=40.0
-        )
-
-help_image = PhotoImage(
-            file=getfile(path="help.png"))
-help_btn = Button(
-            image=help_image,
-            borderwidth=0,
-            highlightthickness=0,
-            command=lambda: messagebox.showinfo('HELP!!!', 'Dhruv bhai se puchle abhi ke liye.\nVersion 2 mein aayega help function'),
-            relief="flat"
-        )
-help_btn.place(
-            x=4.0,
-            y=252.0,
-            width=34.0,
-            height=43.0
-        )
-
-home_image = PhotoImage(
-            file=getfile(path="home.png"))
-home = Button(
-            image=home_image,
-            borderwidth=0,
-            highlightthickness=0,
-            relief="flat"
-        )
-home.place(
-            x=4.0,
-            y=6.0,
-            width=34.0,
-            height=43.0
-        )
-
-cd_image = PhotoImage(
-            file=getfile(path="cd_image.png"))
-cd_image_on_canvas = canvas.create_image(
-            126.0,
-            61.0,
-            image=cd_image
-        )
-
-open_file_image = PhotoImage(
-            file=getfile(path="open_file.png"))
-open_file = Button(
-            image=open_file_image,
-            borderwidth=0,
-            highlightthickness=0,
-            command=lambda: add_song(song_list),
-            relief="flat"
-        )
-open_file.place(
-            x=85.0,
-            y=239.0,
-            width=82.0,
-            height=33.0
-        )
-
-listbox_frame = Frame(master)
-listbox_frame.place(x=209,y=124)
-
-song_list = Listbox(listbox_frame, height=10,width=55)
-scrollbar = ttk.Scrollbar(listbox_frame, orient="vertical", command=song_list.yview)
-
-song_list.configure(yscrollcommand=scrollbar.set)
-song_list.pack(side='left')
-scrollbar.pack(side="right",fill='y')
-
-song_list.insert(0, 'Click Open File Button, and select your music folder')
+        def increment_value(self,scale, interval=1000, increment_amount=1):
+                current_value = scale.get()
+                new_value = current_value + increment_amount
+                if new_value < scale['to'] and not self.pause:
+                        self.user_input = False
+                        scale.set(new_value)
+                        self.user_input = True
+                        self.interval_function = scale.after(interval, lambda: self.increment_value(scale, interval, increment_amount))
+                elif new_value == scale['to']:
+                        self.user_input = False
+                        scale.set(scale['to'])
+                        self.user_input = True
+                        time.sleep(1.0)
+                elif new_value > scale['to']:
+                        self.reset_player()
+                else:    
+                        pass
 
 
-delete_image = PhotoImage(
-            file=getfile(path="delete.png"))
-delete_btn = Button(
-            image=delete_image,
-            borderwidth=0,
-            highlightthickness=0,
-            command=lambda: delete_song(song_list),
-            relief="flat"
-        )
-delete_btn.place(
-            x=85.0,
-            y=199.0,
-            width=82.0,
-            height=33.0
-        )
+        def play_or_pause(self):
+                if self.pause:
+                        self.pause=False
+                        mixer.music.unpause()
+                        self.main_scale.after(100,self.increment_value(self.main_scale))
+                else:
+                        self.pause = True
+                        mixer.music.pause()
 
-start_image = PhotoImage(
-            file=getfile(path="start_song.png"))
-start = Button(
-            image=start_image,
-            borderwidth=0,
-            highlightthickness=0,
-            command=lambda: play(song_list),
-            relief="flat"
-        )
-start.place(
-            x=85.0,
-            y=160.0,
-            width=82.0,
-            height=33.0
-        )
+        def draw_elements(self):
+               
 
-main_scale = ttk.Scale(orient='horizontal',length=325,from_=0, command=lambda x: increase(x))
-main_scale.place(x=219,y=35)
+               #Keep a reference of all PhotoImage to self instance, as else it will be removed by garbage collector
+                self.bg_file = PhotoImage(
+                file=self.getfile(path="bg.png"))
+                
+                self.canvas.create_image(
+                        300.0,
+                        150.0,
+                        image=self.bg_file
+                        )
 
-vol_scale = ttk.Scale(orient='horizontal',length=70,from_=0,to=100, command=vol_slider_change)
-vol_scale.place(x=475,y=60)
-vol_scale.set(100)
-mixer.music.set_volume(1)
+                self.prev_image = PhotoImage(
+                        file=self.getfile(path="prev.png"))
+                previous = Button(
+                        image=self.prev_image,
+                        borderwidth=0,
+                        highlightthickness=0,
+                        command=lambda: self.prev(self.song_list),
+                        relief="flat"
+                        )
+                previous.place(
+                        x=316.0,
+                        y=72.0,
+                        width=30.000000000000004,
+                        height=30.0
+                        )
 
-song_name_canvas = canvas.create_text(
-            239.0,
-            19.0,
-            anchor="nw",
-            text="Select A Song",
-            fill="#FFFFFF",
-            font=("Inter", 12 * -1)
-        )
-song_lenth_canvas = canvas.create_text(
-            232.0,
-            65.0,
-            anchor="nw",
-            text="00:00/00:00",
-            fill="#FFFFFF",
-            font=("Inter", 12 * -1)
-        )
+                self.next_image = PhotoImage(
+                        file=self.getfile(path="next.png"))
+                next_btn = Button(
+                        image=self.next_image,
+                        borderwidth=0,
+                        highlightthickness=0,
+                        command=lambda: self.next(self.song_list),
+                        relief="flat"
+                        )
+                next_btn.place(
+                        x=422.0,
+                        y=72.0,
+                        width=30.0,
+                        height=30.0
+                        )
 
-master.resizable(False, False)
-set_theme('dark')
-master.mainloop()
+                self.play_pause_image = PhotoImage(
+                        file=self.getfile(path="play_pause.png"))
+                play_pause = Button(
+                        image=self.play_pause_image,
+                        borderwidth=0,
+                        highlightthickness=0,
+                        command=lambda: self.play_or_pause(),
+                        relief="flat"
+                        )
+                play_pause.place(
+                        x=364.0,
+                        y=72.0,
+                        width=40.0,
+                        height=40.0
+                        )
+
+                self.help_image = PhotoImage(
+                        file=self.getfile(path="help.png"))
+                help_btn = Button(
+                        image=self.help_image,
+                        borderwidth=0,
+                        highlightthickness=0,
+                        command=lambda: messagebox.showinfo('HELP!!!', 'Dhruv bhai se puchle abhi ke liye.\nVersion 2 mein aayega help function'),
+                        relief="flat"
+                        )
+                help_btn.place(
+                        x=4.0,
+                        y=252.0,
+                        width=34.0,
+                        height=43.0
+                        )
+
+                self.home_image = PhotoImage(
+                        file=self.getfile(path="home.png"))
+                
+                home = Button(
+                        image=self.home_image,
+                        borderwidth=0,
+                        highlightthickness=0,
+                        relief="flat"
+                        )
+                home.place(
+                        x=4.0,
+                        y=6.0,
+                        width=34.0,
+                        height=43.0
+                        )
+
+                self.cd_image = PhotoImage(
+                        file=self.getfile(path="cd_image.png"))
+                
+                self.canvas.create_image(
+                        126.0,
+                        61.0,
+                        image=self.cd_image
+                        )
+
+                self.open_file_image = PhotoImage(
+                        file=self.getfile(path="open_file.png"))
+                open_file = Button(
+                        image=self.open_file_image,
+                        borderwidth=0,
+                        highlightthickness=0,
+                        command=lambda: self.add_song(self.song_list),
+                        relief="flat"
+                        )
+                open_file.place(
+                        x=85.0,
+                        y=239.0,
+                        width=82.0,
+                        height=33.0
+                        )
+
+                self.listbox_frame = Frame(self)
+                self.listbox_frame.place(x=209,y=124)
+
+                self.song_list = Listbox(self.listbox_frame, height=10,width=55)
+                self.scrollbar = ttk.Scrollbar(self.listbox_frame, orient="vertical", command=self.song_list.yview)
+
+                self.song_list.configure(yscrollcommand=self.scrollbar.set)
+                self.song_list.pack(side='left')
+                self.scrollbar.pack(side="right",fill='y')
+
+                self.song_list.insert(0, 'Click Open File Button, and select your music folder')
+
+                self.delete_image = PhotoImage(
+                        file=self.getfile(path="delete.png"))
+                delete_btn = Button(
+                        image=self.delete_image,
+                        borderwidth=0,
+                        highlightthickness=0,
+                        command=lambda: self.delete_song(self.song_list),
+                        relief="flat"
+                        )
+                delete_btn.place(
+                        x=85.0,
+                        y=199.0,
+                        width=82.0,
+                        height=33.0
+                        )
+
+                self.start_image = PhotoImage(
+                        file=self.getfile(path="start_song.png"))
+                start = Button(
+                        image=self.start_image,
+                        borderwidth=0,
+                        highlightthickness=0,
+                        command=lambda: self.play(self.song_list),
+                        relief="flat"
+                        )
+                start.place(
+                        x=85.0,
+                        y=160.0,
+                        width=82.0,
+                        height=33.0
+                        )
+
+                self.main_scale = ttk.Scale(orient='horizontal',length=325,from_=0, command=lambda x: self.increase(x))
+                self.main_scale.place(x=219,y=35)
+
+                vol_scale = ttk.Scale(orient='horizontal',length=70,from_=0,to=100, command=self.vol_slider_change)
+                vol_scale.place(x=475,y=60)
+                vol_scale.set(100)
+                mixer.music.set_volume(1)
+
+                self.song_name_canvas = self.canvas.create_text(
+                        239.0,
+                        19.0,
+                        anchor="nw",
+                        text="Select A Song",
+                        fill="#FFFFFF",
+                        font=("Inter", 12 * -1)
+                        )
+                self.song_lenth_canvas = self.canvas.create_text(
+                        232.0,
+                        65.0,
+                        anchor="nw",
+                        text="00:00/00:00",
+                        fill="#FFFFFF",
+                        font=("Inter", 12 * -1)
+                        )
+
+if __name__ == "__main__":
+        master = Taby()
+        set_theme("dark")
+        master.mainloop()
